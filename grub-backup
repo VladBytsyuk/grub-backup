@@ -17,6 +17,9 @@
 #   grub-backup list    [-p DIR]
 #   grub-backup clear   [-p DIR] [-m MSG] [-a]
 #
+# restore without -m restores the latest unnamed backup.
+# clear -m deletes all backups with that name.
+#
 
 set -euo pipefail
 
@@ -41,9 +44,9 @@ Usage:
 
 Commands:
   save      Create a backup of the current GRUB configuration
-  restore   Restore the latest matching backup
+  restore   Restore the latest matching backup; without -m, restore latest unnamed backup
   list      Show available backups
-  clear     Delete one or more backups
+  clear     Delete backups; with -m, delete all backups with that name
 
 Options:
   -p, --path DIR       Directory for storing or reading backups
@@ -75,11 +78,21 @@ backup_dir() {
   echo "$BACKUP_ROOT/.grub-backup"
 }
 
+archive_contains() {
+  local archive="$1"
+  local path="$2"
+
+  tar -tzf "$archive" | grep -Fx -- "$path" >/dev/null
+}
+
 find_latest_backup() {
-  local msg_safe
+  local dir msg_safe
+  dir="$(backup_dir)"
+  [[ -d "$dir" ]] || return 0
+
   msg_safe="$(safe_message "$MESSAGE")"
 
-  find "$(backup_dir)" \
+  find "$dir" \
     -maxdepth 1 \
     -type f \
     -name "grub-backup-*-${msg_safe}.tar.gz" \
@@ -90,12 +103,14 @@ find_latest_backup() {
 cmd_save() {
   require_root
 
-  local dir msg_safe timestamp archive meta
+  local dir msg_safe timestamp archive tmpdir meta
   dir="$(backup_dir)"
   msg_safe="$(safe_message "$MESSAGE")"
   timestamp="$(date '+%Y%m%d-%H%M%S')"
   archive="$dir/grub-backup-${timestamp}-${msg_safe}.tar.gz"
-  meta="$(mktemp)"
+  tmpdir="$(mktemp -d)"
+  meta="$tmpdir/manifest"
+  trap 'rm -rf "$tmpdir"; trap - RETURN' RETURN
 
   mkdir -p "$dir"
 
@@ -113,26 +128,41 @@ EOF
     boot/grub/grub.cfg \
     -C "$(dirname "$meta")" "$(basename "$meta")"
 
-  rm -f "$meta"
-
   echo "Backup created: $archive"
 }
 
 cmd_restore() {
   require_root
 
-  local archive
+  local archive staging
   archive="$(find_latest_backup)"
 
   [[ -n "$archive" ]] || die "backup not found"
 
   echo "Restoring from: $archive"
 
-  # Extract only GRUB system files.
-  tar -xzf "$archive" -C / \
+  archive_contains "$archive" 'etc/default/grub' \
+    || die "backup is missing etc/default/grub"
+  archive_contains "$archive" 'etc/grub.d/' \
+    || archive_contains "$archive" 'etc/grub.d' \
+    || die "backup is missing etc/grub.d"
+  archive_contains "$archive" 'boot/grub/grub.cfg' \
+    || die "backup is missing boot/grub/grub.cfg"
+
+  staging="$(mktemp -d)"
+  trap 'rm -rf "$staging"; trap - RETURN' RETURN
+
+  # Stage first so system files are touched only after archive validation.
+  tar -xzf "$archive" -C "$staging" \
     etc/default/grub \
     etc/grub.d \
     boot/grub/grub.cfg
+
+  mkdir -p /etc/default /boot/grub
+  cp -a "$staging/etc/default/grub" /etc/default/grub
+  rm -rf /etc/grub.d
+  cp -a "$staging/etc/grub.d" /etc/grub.d
+  cp -a "$staging/boot/grub/grub.cfg" /boot/grub/grub.cfg
 
   # Regenerate grub.cfg from the restored configuration.
   update-grub
@@ -155,7 +185,7 @@ cmd_list() {
 }
 
 cmd_clear() {
-  local dir msg_safe files
+  local dir msg_safe find_args
   dir="$(backup_dir)"
 
   [[ -d "$dir" ]] || {
@@ -164,18 +194,18 @@ cmd_clear() {
   }
 
   if [[ "$ALL" == true ]]; then
-    files="$(find "$dir" -maxdepth 1 -type f -name 'grub-backup-*.tar.gz')"
+    find_args=(-name 'grub-backup-*.tar.gz')
   else
     msg_safe="$(safe_message "$MESSAGE")"
-    files="$(find "$dir" -maxdepth 1 -type f -name "grub-backup-*-${msg_safe}.tar.gz")"
+    find_args=(-name "grub-backup-*-${msg_safe}.tar.gz")
   fi
 
-  [[ -n "$files" ]] || {
+  if ! find "$dir" -maxdepth 1 -type f "${find_args[@]}" -print -quit | grep -q .; then
     echo "Nothing to delete."
     return
-  }
+  fi
 
-  echo "$files" | xargs rm -f
+  find "$dir" -maxdepth 1 -type f "${find_args[@]}" -print0 | xargs -0 rm -f
   echo "Backups deleted."
 }
 

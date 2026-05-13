@@ -11,7 +11,7 @@ The project is intended to safely save the current bootloader state before confi
 - Create backups of the current GRUB configuration
 - Restore saved configurations
 - List available backups
-- Delete one backup or all backups
+- Delete backups by name or delete all backups
 - Named and unnamed backups
 - Custom backup storage directories
 - Automatic `update-grub` run after restore
@@ -93,6 +93,14 @@ grub-backup list -p ~/grub-backups
 
 ### Restore a backup
 
+Without `-m`, `restore` restores the latest unnamed backup.
+
+```bash
+sudo grub-backup restore
+```
+
+With `-m`, `restore` restores the latest backup with that name.
+
 ```bash
 sudo grub-backup restore -m before-kernel-update
 ```
@@ -103,7 +111,9 @@ sudo grub-backup restore -p ~/grub-backups -m custom-backup
 
 ---
 
-### Delete a specific backup
+### Delete backups with a specific name
+
+This deletes all backups with the matching name.
 
 ```bash
 grub-backup clear -m before-kernel-update
@@ -180,4 +190,3 @@ GRUB changes can cause:
 ## Contributing
 
 Pull requests, issues, and suggestions are welcome.
-
