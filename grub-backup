@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
 # grub-backup
-# Простая утилита для сохранения, восстановления, просмотра и удаления
-# бэкапов конфигурации GRUB по аналогии с git stash.
+# Simple utility for saving, restoring, listing, and deleting GRUB
+# configuration backups, similar to git stash.
 #
-# Что сохраняется:
+# Backed up files:
 #   - /etc/default/grub
 #   - /etc/grub.d/
 #   - /boot/grub/grub.cfg
 #
-# После restore автоматически выполняется update-grub.
+# restore automatically runs update-grub.
 #
-# Использование:
+# Usage:
 #   grub-backup save    [-p DIR] [-m MSG]
 #   grub-backup restore [-p DIR] [-m MSG]
 #   grub-backup list    [-p DIR]
@@ -27,45 +27,45 @@ ALL=false
 UNNAMED="__unnamed__"
 
 die() {
-  echo "Ошибка: $*" >&2
+  echo "Error: $*" >&2
   exit 1
 }
 
 usage() {
   cat <<EOF
-Использование:
+Usage:
   grub-backup save    [-p DIR] [-m MSG]
   grub-backup restore [-p DIR] [-m MSG]
   grub-backup list    [-p DIR]
   grub-backup clear   [-p DIR] [-m MSG] [-a]
 
-Команды:
-  save      Создать бэкап текущей конфигурации GRUB
-  restore   Восстановить последний подходящий бэкап
-  list      Показать список бэкапов
-  clear     Удалить бэкап или бэкапы
+Commands:
+  save      Create a backup of the current GRUB configuration
+  restore   Restore the latest matching backup
+  list      Show available backups
+  clear     Delete one or more backups
 
-Опции:
-  -p, --path DIR       Папка для хранения или чтения бэкапов
-  -m, --message MSG    Имя бэкапа
-  -a, --all            Удалить все бэкапы в папке
-  -h, --help           Показать справку
+Options:
+  -p, --path DIR       Directory for storing or reading backups
+  -m, --message MSG    Backup name
+  -a, --all            Delete all backups in the directory
+  -h, --help           Show this help
 EOF
 }
 
 require_root() {
-  # Изменение файлов GRUB требует root-прав.
+  # Modifying GRUB files requires root privileges.
   if [[ "${EUID}" -ne 0 ]]; then
-    die "команда требует root-прав. Запустите через sudo."
+    die "this command requires root privileges. Run it with sudo."
   fi
 }
 
 safe_message() {
-  # Преобразуем unsafe-символы в "_"
+  # Convert unsafe characters to "_".
   local msg="${1:-$UNNAMED}"
 
-  # Все символы кроме букв, цифр, точки, подчеркивания и дефиса заменяются
-  # через встроенную подстановку Bash.
+  # Bash pattern substitution replaces everything except letters, digits,
+  # dots, underscores, and hyphens.
   msg="${msg//[^a-zA-Z0-9._-]/_}"
 
   echo "$msg"
@@ -99,7 +99,7 @@ cmd_save() {
 
   mkdir -p "$dir"
 
-  # Manifest нужен для удобного просмотра списка бэкапов.
+  # The manifest makes backup lists easier to inspect.
   cat > "$meta" <<EOF
 created_at=$timestamp
 message=${MESSAGE:-}
@@ -115,7 +115,7 @@ EOF
 
   rm -f "$meta"
 
-  echo "Бэкап создан: $archive"
+  echo "Backup created: $archive"
 }
 
 cmd_restore() {
@@ -124,20 +124,20 @@ cmd_restore() {
   local archive
   archive="$(find_latest_backup)"
 
-  [[ -n "$archive" ]] || die "бэкап не найден"
+  [[ -n "$archive" ]] || die "backup not found"
 
-  echo "Восстановление из: $archive"
+  echo "Restoring from: $archive"
 
-  # Распаковываем только системные файлы GRUB.
+  # Extract only GRUB system files.
   tar -xzf "$archive" -C / \
     etc/default/grub \
     etc/grub.d \
     boot/grub/grub.cfg
 
-  # Перегенерируем grub.cfg по восстановленной конфигурации.
+  # Regenerate grub.cfg from the restored configuration.
   update-grub
 
-  echo "GRUB восстановлен."
+  echo "GRUB restored."
 }
 
 cmd_list() {
@@ -145,7 +145,7 @@ cmd_list() {
   dir="$(backup_dir)"
 
   [[ -d "$dir" ]] || {
-    echo "Бэкапов нет."
+    echo "No backups found."
     return
   }
 
@@ -159,7 +159,7 @@ cmd_clear() {
   dir="$(backup_dir)"
 
   [[ -d "$dir" ]] || {
-    echo "Бэкапов нет."
+    echo "No backups found."
     return
   }
 
@@ -171,12 +171,12 @@ cmd_clear() {
   fi
 
   [[ -n "$files" ]] || {
-    echo "Нечего удалять."
+    echo "Nothing to delete."
     return
   }
 
   echo "$files" | xargs rm -f
-  echo "Бэкапы удалены."
+  echo "Backups deleted."
 }
 
 COMMAND="${1:-}"
@@ -190,12 +190,12 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -p|--path)
       BACKUP_ROOT="${2:-}"
-      [[ -n "$BACKUP_ROOT" ]] || die "не указан путь после $1"
+      [[ -n "$BACKUP_ROOT" ]] || die "missing path after $1"
       shift 2
       ;;
     -m|--message)
       MESSAGE="${2:-}"
-      [[ -n "$MESSAGE" ]] || die "не указано имя после $1"
+      [[ -n "$MESSAGE" ]] || die "missing name after $1"
       shift 2
       ;;
     -a|--all)
@@ -207,7 +207,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      die "неизвестная опция: $1"
+      die "unknown option: $1"
       ;;
   esac
 done
@@ -229,7 +229,6 @@ case "$COMMAND" in
     usage
     ;;
   *)
-    die "неизвестная команда: $COMMAND"
+    die "unknown command: $COMMAND"
     ;;
 esac
-

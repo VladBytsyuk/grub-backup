@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
 # test-grub-backup
-# Тестирует скрипт grub-backup и печатает отчет.
+# Tests the grub-backup script and prints a report.
 #
-# Безопасные тесты:
+# Safe tests:
 #   ./test-grub-backup ./grub-backup
 #
-# Опасный restore-тест только в VM:
+# Dangerous restore test, VM only:
 #   sudo ./test-grub-backup ./grub-backup --with-restore
 #
 
@@ -56,17 +56,17 @@ run_test() {
 
 cleanup() {
   log ""
-  log "Временная папка: $TEST_ROOT"
+  log "Temporary directory: $TEST_ROOT"
 }
 trap cleanup EXIT
 
-log "Отчет тестирования grub-backup"
-log "Скрипт: $SCRIPT"
-log "Дата: $(date)"
-log "Тестовая папка: $TEST_ROOT"
+log "grub-backup test report"
+log "Script: $SCRIPT"
+log "Date: $(date)"
+log "Test directory: $TEST_ROOT"
 
 if [[ ! -f "$SCRIPT" ]]; then
-  fail "Файл скрипта не найден: $SCRIPT"
+  fail "Script file not found: $SCRIPT"
   exit 1
 fi
 
@@ -74,51 +74,51 @@ if [[ ! -x "$SCRIPT" ]]; then
   chmod +x "$SCRIPT" 2>/dev/null || true
 fi
 
-# 1. Проверка синтаксиса Bash.
+# 1. Bash syntax check.
 run_test "bash -n" bash -n "$SCRIPT"
 
-# 2. ShellCheck, если установлен.
+# 2. ShellCheck, if installed.
 if command -v shellcheck >/dev/null 2>&1; then
   run_test "shellcheck" shellcheck "$SCRIPT"
 else
-  skip "shellcheck не установлен"
+  skip "shellcheck is not installed"
 fi
 
-# 3. Проверка help/usage.
+# 3. Help/usage check.
 run_test "help command" "$SCRIPT" --help
 
-# 4. Проверка неизвестной команды.
+# 4. Unknown command check.
 log ""
 log "TEST: unknown command"
 if "$SCRIPT" unknown-command >>"$REPORT" 2>&1; then
-  fail "unknown command должна завершаться ошибкой"
+  fail "unknown command should fail"
 else
   pass "unknown command"
 fi
 
-# 5. Проверка неизвестной опции.
+# 5. Unknown option check.
 log ""
 log "TEST: unknown option"
 if "$SCRIPT" list --bad-option >>"$REPORT" 2>&1; then
-  fail "unknown option должна завершаться ошибкой"
+  fail "unknown option should fail"
 else
   pass "unknown option"
 fi
 
-# 6. save без root должен упасть, если тест запущен не от root.
+# 6. save without root should fail when the test is not run as root.
 if [[ "$EUID" -ne 0 ]]; then
   log ""
   log "TEST: save requires root"
   if "$SCRIPT" save -p "$TEST_ROOT" -m no-root >>"$REPORT" 2>&1; then
-    fail "save без root должен завершаться ошибкой"
+    fail "save without root should fail"
   else
     pass "save requires root"
   fi
 else
-  skip "save requires root — тест запущен от root"
+  skip "save requires root: test is running as root"
 fi
 
-# 7. save/list/clear требуют sudo, потому что читают реальные GRUB-файлы.
+# 7. save/list/clear require sudo because they read real GRUB files.
 if [[ "$EUID" -eq 0 ]]; then
   run_test "save named backup" "$SCRIPT" save -p "$TEST_ROOT" -m test-backup
 
@@ -182,16 +182,16 @@ if [[ "$EUID" -eq 0 ]]; then
     fail "all backups removed"
   fi
 else
-  skip "save/list/clear archive tests — запустите через sudo"
+  skip "save/list/clear archive tests: run with sudo"
 fi
 
-# 8. Опциональный restore-тест. Только для VM.
+# 8. Optional restore test. VM only.
 if [[ "$WITH_RESTORE" == "--with-restore" ]]; then
   if [[ "$EUID" -ne 0 ]]; then
-    skip "restore test требует sudo"
+    skip "restore test requires sudo"
   else
     log ""
-    log "ВНИМАНИЕ: restore test изменяет реальные GRUB-файлы."
+    log "WARNING: restore test modifies real GRUB files."
 
     cp /etc/default/grub "$TEST_ROOT/grub.original"
 
@@ -210,16 +210,16 @@ if [[ "$WITH_RESTORE" == "--with-restore" ]]; then
     fi
   fi
 else
-  skip "restore test отключен; включается через --with-restore только в VM"
+  skip "restore test disabled; enable with --with-restore in a VM only"
 fi
 
 log ""
 log "=============================="
-log "ИТОГО"
-log "Успешно:   $PASSED"
-log "Ошибки:    $FAILED"
-log "Пропущено: $SKIPPED"
-log "Отчет:     $REPORT"
+log "SUMMARY"
+log "Passed:  $PASSED"
+log "Failed:  $FAILED"
+log "Skipped: $SKIPPED"
+log "Report:  $REPORT"
 log "=============================="
 
 if [[ "$FAILED" -gt 0 ]]; then
@@ -227,4 +227,3 @@ if [[ "$FAILED" -gt 0 ]]; then
 fi
 
 exit 0
-

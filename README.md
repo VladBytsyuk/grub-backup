@@ -1,25 +1,25 @@
 # grub-backup
 
-`grub-backup` — это Bash-утилита для создания, восстановления, просмотра и удаления резервных копий конфигурации GRUB по аналогии с `git stash`.
+`grub-backup` is a Bash utility for creating, restoring, listing, and deleting GRUB configuration backups, similar to `git stash`.
 
-Проект предназначен для безопасного сохранения текущего состояния загрузчика перед изменениями конфигурации, обновлениями или ручной настройкой.
-
----
-
-## Возможности
-
-- Создание резервных копий текущей конфигурации GRUB
-- Восстановление сохранённых конфигураций
-- Просмотр списка доступных бэкапов
-- Удаление одного или всех бэкапов
-- Именованные и безымянные резервные копии
-- Поддержка пользовательских директорий хранения
-- Автоматический запуск `update-grub` после восстановления
-- Полное тестирование через отдельный тестовый скрипт
+The project is intended to safely save the current bootloader state before configuration changes, upgrades, or manual edits.
 
 ---
 
-## Какие файлы сохраняются
+## Features
+
+- Create backups of the current GRUB configuration
+- Restore saved configurations
+- List available backups
+- Delete one backup or all backups
+- Named and unnamed backups
+- Custom backup storage directories
+- Automatic `update-grub` run after restore
+- Full testing through a separate test script
+
+---
+
+## Backed Up Files
 
 ```text
 /etc/default/grub
@@ -29,26 +29,26 @@
 
 ---
 
-## Требования
+## Requirements
 
 * Ubuntu / Xubuntu / Debian-based Linux
 * Bash 4+
 * `tar`
 * `update-grub`
-* Root-права (`sudo`) для `save` и `restore`
+* Root privileges (`sudo`) for `save` and `restore`
 
 ---
 
-## Установка
+## Installation
 
-### Клонирование репозитория
+### Clone the repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/grub-backup.git
 cd grub-backup
 ```
 
-### Установка в систему
+### Install system-wide
 
 ```bash
 sudo install -m 755 grub-backup /usr/local/bin/grub-backup
@@ -57,21 +57,21 @@ sudo install -m 755 test-grub-backup /usr/local/bin/test-grub-backup
 
 ---
 
-## Использование
+## Usage
 
-### Создать бэкап
+### Create a backup
 
 ```bash
 sudo grub-backup save
 ```
 
-### Создать именованный бэкап
+### Create a named backup
 
 ```bash
 sudo grub-backup save -m before-kernel-update
 ```
 
-### Указать директорию хранения
+### Use a custom storage directory
 
 ```bash
 sudo grub-backup save -p ~/grub-backups -m custom-backup
@@ -79,7 +79,7 @@ sudo grub-backup save -p ~/grub-backups -m custom-backup
 
 ---
 
-### Просмотреть список бэкапов
+### List backups
 
 ```bash
 grub-backup list
@@ -91,7 +91,7 @@ grub-backup list -p ~/grub-backups
 
 ---
 
-### Восстановить бэкап
+### Restore a backup
 
 ```bash
 sudo grub-backup restore -m before-kernel-update
@@ -103,7 +103,7 @@ sudo grub-backup restore -p ~/grub-backups -m custom-backup
 
 ---
 
-### Удалить конкретный бэкап
+### Delete a specific backup
 
 ```bash
 grub-backup clear -m before-kernel-update
@@ -111,7 +111,7 @@ grub-backup clear -m before-kernel-update
 
 ---
 
-### Удалить все бэкапы
+### Delete all backups
 
 ```bash
 grub-backup clear --all
@@ -119,15 +119,15 @@ grub-backup clear --all
 
 ---
 
-## Тестирование
+## Testing
 
-### Быстрая проверка
+### Quick check
 
 ```bash
 ./test-grub-backup ./grub-backup
 ```
 
-### Полное тестирование (включая restore)
+### Full testing, including restore
 
 ```bash
 sudo ./test-grub-backup ./grub-backup --with-restore
@@ -135,50 +135,49 @@ sudo ./test-grub-backup ./grub-backup --with-restore
 
 ---
 
-## Безопасность
+## Safety
 
-> **Важно:**
-> Команда `restore` изменяет реальные системные файлы GRUB.
-> Для безопасного тестирования рекомендуется использовать виртуальную машину.
+> **Important:**
+> The `restore` command modifies real GRUB system files.
+> Use a virtual machine for safe restore testing.
 
 ---
 
-## Пример рабочего процесса
+## Example Workflow
 
 ```bash
 sudo grub-backup save -m before-edit
 sudo nano /etc/default/grub
 sudo update-grub
 
-# Если что-то пошло не так:
+# If something goes wrong:
 sudo grub-backup restore -m before-edit
 ```
 
 ---
 
-## Лицензия
+## License
 
 MIT License
 
-Свободное использование, модификация и распространение разрешены.
+Free use, modification, and distribution are permitted.
 
 ---
 
-## Почему этот проект полезен
+## Why This Project Is Useful
 
-Изменения GRUB могут привести к:
+GRUB changes can cause:
 
-* невозможности загрузки системы;
-* ошибкам меню загрузчика;
-* конфликтам ядра;
-* потере кастомных параметров.
+* a system that cannot boot;
+* bootloader menu errors;
+* kernel conflicts;
+* loss of custom parameters.
 
-`grub-backup` позволяет быстро откатиться к рабочему состоянию.
+`grub-backup` lets you quickly roll back to a working state.
 
 ---
 
-## Вклад в проект
+## Contributing
 
-Pull Requests, Issues и предложения приветствуются.
-
+Pull requests, issues, and suggestions are welcome.
 
