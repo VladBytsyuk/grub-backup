@@ -41,17 +41,21 @@ The project is intended to safely save the current bootloader state before confi
 
 ## Installation
 
-### Clone the repository
+### Download and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/grub-backup.git
-cd grub-backup
+curl -fsSL -o grub-backup https://raw.githubusercontent.com/VladBytsyuk/grub-backup/main/grub-backup
+chmod +x grub-backup
+sudo install -m 755 grub-backup /usr/local/bin/grub-backup
 ```
 
-### Install system-wide
+### Optional test script
+
+Download and install the test script if you want to run the included checks.
 
 ```bash
-sudo install -m 755 grub-backup /usr/local/bin/grub-backup
+curl -fsSL -o test-grub-backup https://raw.githubusercontent.com/VladBytsyuk/grub-backup/main/test-grub-backup
+chmod +x test-grub-backup
 sudo install -m 755 test-grub-backup /usr/local/bin/test-grub-backup
 ```
 
